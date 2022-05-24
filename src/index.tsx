@@ -1,3 +1,9 @@
+/**
+ * BingoContainer
+ * The board and main component
+ *
+ * @returns {JSX.Element}
+ */
 const BingoContainer = (): JSX.Element => {
   const localFields = localStorage.getItem("fields")
     ? JSON.parse(String(localStorage.getItem("fields")))
@@ -5,6 +11,7 @@ const BingoContainer = (): JSX.Element => {
 
   const [fields, setFields] = React.useState(localFields);
 
+  /* Procedure for what happens when a field is toggled */
   const onChange = (id: number, checked: boolean) => {
     let tempFields = fields;
     tempFields[id] = { ...tempFields[id], checked };
@@ -13,12 +20,13 @@ const BingoContainer = (): JSX.Element => {
     setFields(tempFields);
   };
 
-  const generate = () => {
-    fetch("api/fields.php")
+  /* Procedure for fetching a new set of fields for the board */
+  const generate = (category: number = 0) => {
+    fetch(`api/fields.php?category=${category}`)
       .then((data) => data.json())
       .then((data) =>
         data.map((field) => {
-          return { ...field, checked: field.chekced == "t" };
+          return { ...field, checked: false };
         })
       )
       .then((data) => {
@@ -27,18 +35,17 @@ const BingoContainer = (): JSX.Element => {
       });
   };
 
+  /* Generate new fields if local storage is empty */
   if (fields.length == 0) {
     generate();
   }
 
   return (
     <>
-      <button type="button" onClick={generate}>
-        Generer ny
-      </button>
+      <BingoGenerator generate={generate} />
       <div className="bingo-container">
         <>
-          {fields.map((field, index) => {
+          {fields.map((field: any, index) => {
             return (
               <BingoField
                 key={index}
@@ -62,6 +69,17 @@ type BingoFieldProps = {
   onChange: (id: number, checked: boolean) => void;
 };
 
+/**
+ * Bingo Field
+ * A single field in the board.
+ *
+ * @param props
+ * @param props.id - index in array of fields
+ * @param props.content - the string
+ * @param props.checked - checked or not
+ * @param props.onChange - function on click
+ * @returns {JSX.Element}
+ */
 const BingoField = ({
   id,
   content,
@@ -87,6 +105,55 @@ const BingoField = ({
   }
 };
 
+type BingoGeneratorProps = {
+  generate: (cateogory: number) => void;
+};
+
+const BingoGenerator = ({ generate }: BingoGeneratorProps): JSX.Element => {
+  // List of all possible categories
+  const [categories, setCategories] = React.useState([]);
+  // Chosen category
+  const [category, setCategory] = React.useState(0);
+
+  const onChange = (event) => {
+    setCategory(event.target.value);
+  }
+
+  const onSubmit = () => {
+    generate(category);
+  }
+
+  if (categories.length == 0) {
+    fetch("api/categories.php")
+      .then((data) => data.json())
+      .then((data) => {
+        setCategories(data);
+      });
+  }
+
+  return (
+    <div className="bingo-generator">
+      <button type="button" onClick={onSubmit}>
+        Generer ny
+      </button>
+      <p>Kategori:</p>
+      <label>
+        <input name="category" type="radio" value={0} onChange={onChange} checked={category == 0}/>
+        Alt
+      </label>
+      {
+          categories.map((cat: any) => { return(
+              <label>
+                <input name="category" type="radio" value={cat.id} onChange={onChange} checked={category == cat.id} />
+                {cat.name}
+              </label>
+          ); })
+      }
+    </div>
+  );
+};
+
+/* Main render */
 const domContainer = document.getElementById("react_root");
 ReactDOM.render(
   <React.StrictMode>
