@@ -21,8 +21,12 @@ const BingoContainer = (): JSX.Element => {
   };
 
   /* Procedure for fetching a new set of fields for the board */
-  const generate = (category: number = 0) => {
-    fetch(`api/fields.php?category=${category}`)
+  const generate = (category: number = 0, subcategories: string[] = []) => {
+    fetch(
+      `api/fields.php?category=${category}&subcategories=${subcategories
+        .join(",")
+        .replace(/,$/, "")}`
+    )
       .then((data) => data.json())
       .then((data) =>
         data.map((field) => {
@@ -106,7 +110,7 @@ const BingoField = ({
 };
 
 type BingoGeneratorProps = {
-  generate: (cateogory: number) => void;
+  generate: (cateogory: number, subcategories: string[]) => void;
 };
 
 const BingoGenerator = ({ generate }: BingoGeneratorProps): JSX.Element => {
@@ -114,14 +118,26 @@ const BingoGenerator = ({ generate }: BingoGeneratorProps): JSX.Element => {
   const [categories, setCategories] = React.useState([]);
   // Chosen category
   const [category, setCategory] = React.useState(0);
+  // Chosen subcategories
+  const [subcategories, setSubcategories] = React.useState<string[]>([]);
 
   const onChange = (event) => {
     setCategory(event.target.value);
-  }
+  };
+
+  const onSubChange = (event): void => {
+    let temp: string[] = [...subcategories];
+    if (!temp.includes(event.target.value)) {
+      temp.push(event.target.value);
+    } else {
+      temp.splice(temp.indexOf(event.target.value), 1);
+    }
+    setSubcategories(temp);
+  };
 
   const onSubmit = () => {
-    generate(category);
-  }
+    generate(category, subcategories);
+  };
 
   if (categories.length == 0) {
     fetch("api/categories.php")
@@ -136,19 +152,54 @@ const BingoGenerator = ({ generate }: BingoGeneratorProps): JSX.Element => {
       <button type="button" onClick={onSubmit}>
         Generer ny
       </button>
-      <p>Kategori:</p>
-      <label>
-        <input name="category" type="radio" value={0} onChange={onChange} checked={category == 0}/>
-        Alt
-      </label>
-      {
-          categories.map((cat: any) => { return(
+      <div className="category-list">
+        <p>Kategori:</p>
+        <label>
+          <input
+            name="category"
+            type="radio"
+            value={0}
+            onChange={onChange}
+            checked={category == 0}
+          />
+          Alt
+        </label>
+        {categories
+          .filter((cat: any) => !cat.subcategory)
+          .map((cat: any) => {
+            return (
               <label>
-                <input name="category" type="radio" value={cat.id} onChange={onChange} checked={category == cat.id} />
+                <input
+                  name="category"
+                  type="radio"
+                  value={cat.id}
+                  onChange={onChange}
+                  checked={category == cat.id}
+                />
                 {cat.name}
               </label>
-          ); })
-      }
+            );
+          })}
+      </div>
+      <div className="category-list">
+        <p>Underkategorier:</p>
+        {categories
+          .filter((cat: any) => cat.subcategory)
+          .map((cat: any) => {
+            return (
+              <label>
+                <input
+                  name="category"
+                  type="checkbox"
+                  value={cat.id}
+                  onClick={onSubChange}
+                  checked={subcategories.includes(cat.id)}
+                />
+                {cat.name}
+              </label>
+            );
+          })}
+      </div>
     </div>
   );
 };

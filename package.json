@@ -3,7 +3,7 @@
   "license": "MIT",
   "main": "build/index.js",
   "scripts": {
-    "build": "npm run build:esm && npm run build:cjs",
+    "build": "npm run build:esm",
     "build:esm": "tsc",
     "build:cjs": "tsc --module commonjs --outDir build/cjs"
   },
